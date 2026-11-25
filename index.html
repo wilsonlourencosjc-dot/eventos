@@ -1,62 +1,99 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex,nofollow">
-  <title>Galeria</title>
-  <style>
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; width: 100%; background: #fff; }
-    #gallery { width: 100%; display: flex; flex-direction: column; gap: 0; }
-    #gallery img { display: block; width: 100%; height: auto; object-fit: contain; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galeria</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  background: #fff;
+}
+
+#galeria {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#galeria img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+</style>
 </head>
+
 <body>
-  <main id="gallery" aria-label="Galeria de imagens"></main>
-  <script>
-    (() => {
-      const owner = 'wilsonlourencosjc-dot';
-      const repo = 'eventos';
-      const folder = ''; // Imagens na raiz do repositório. Ex.: 'imagens' se estiverem em uma pasta.
-      const api = `https://api.github.com/repos/${owner}/${repo}/contents/${folder}`;
-      const gallery = document.getElementById('gallery');
 
-      function numericName(name) {
-        const match = name.match(/^(\d+)(?:\.[^.]+)?$/);
-        return match ? Number(match[1]) : null;
-      }
+<main id="galeria"></main>
 
-      async function loadImages() {
-        try {
-          const response = await fetch(`${api}?_=${Date.now()}`, {
-            headers: { 'Accept': 'application/vnd.github+json' },
-            cache: 'no-store'
-          });
-          if (!response.ok) throw new Error(`GitHub API: ${response.status}`);
-          const files = await response.json();
-          const images = files
-            .filter(file => file.type === 'file' && /\.(jpe?g|png|gif|webp|avif)$/i.test(file.name))
-            .map(file => ({ ...file, number: numericName(file.name) }))
-            .filter(file => file.number !== null)
-            .sort((a, b) => b.number - a.number || b.name.localeCompare(a.name, undefined, { numeric: true }));
+<script>
+const usuario = "wilsonlourencosjc-dot";
+const repositorio = "eventos";
+const branch = "main";
 
-          gallery.replaceChildren();
-          for (const file of images) {
-            const img = document.createElement('img');
-            img.src = file.download_url;
-            img.alt = '';
-            img.loading = 'lazy';
-            img.decoding = 'async';
-            gallery.appendChild(img);
-          }
-        } catch (error) {
-          console.error('Não foi possível carregar as imagens do repositório:', error);
-        }
-      }
+const galeria = document.getElementById("galeria");
 
-      loadImages();
-    })();
-  </script>
+async function carregarImagens() {
+  try {
+    const url =
+      `https://api.github.com/repos/${usuario}/${repositorio}/contents/?ref=${branch}`;
+
+    const resposta = await fetch(url, {
+      headers: {
+        "Accept": "application/vnd.github+json"
+      },
+      cache: "no-store"
+    });
+
+    if (!resposta.ok) {
+      throw new Error("Erro ao acessar o repositório GitHub.");
+    }
+
+    const arquivos = await resposta.json();
+
+    const imagens = arquivos
+      .filter(arquivo =>
+        arquivo.type === "file" &&
+        /^\d+.*\.(jpg|jpeg|png|gif|webp|avif|bmp)$/i.test(arquivo.name)
+      )
+      .sort((a, b) => {
+        const numeroA = Number(a.name.match(/^\d+/)[0]);
+        const numeroB = Number(b.name.match(/^\d+/)[0]);
+
+        return numeroB - numeroA;
+      });
+
+    galeria.innerHTML = "";
+
+    imagens.forEach(arquivo => {
+      const img = document.createElement("img");
+
+      img.src = arquivo.download_url;
+      img.alt = "";
+      img.loading = "lazy";
+      img.decoding = "async";
+
+      galeria.appendChild(img);
+    });
+
+  } catch (erro) {
+    console.error("Falha ao carregar imagens:", erro);
+  }
+}
+
+carregarImagens();
+</script>
+
 </body>
 </html>
