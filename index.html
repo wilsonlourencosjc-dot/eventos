@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Galeria</title>
+<title>Eventos</title>
 
 <style>
 * {
@@ -15,21 +14,21 @@ html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  background: #fff;
+  background: white;
 }
 
 #galeria {
-  width: 100%;
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 #galeria img {
   display: block;
   width: 100%;
   height: auto;
-  object-fit: contain;
 }
+
 </style>
 </head>
 
@@ -44,8 +43,17 @@ const branch = "main";
 
 const galeria = document.getElementById("galeria");
 
+// Data de hoje no fuso horário brasileiro
+const hoje = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Sao_Paulo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit"
+}).format(new Date());
+
 async function carregarImagens() {
   try {
+
     const url =
       `https://api.github.com/repos/${usuario}/${repositorio}/contents/?ref=${branch}`;
 
@@ -57,21 +65,33 @@ async function carregarImagens() {
     });
 
     if (!resposta.ok) {
-      throw new Error("Erro ao acessar o repositório GitHub.");
+      throw new Error("Erro ao consultar o repositório GitHub.");
     }
 
     const arquivos = await resposta.json();
 
-    const imagens = arquivos
-      .filter(arquivo =>
-        arquivo.type === "file" &&
-        /^\d+.*\.(jpg|jpeg|png|gif|webp|avif|bmp)$/i.test(arquivo.name)
-      )
-      .sort((a, b) => {
-        const numeroA = Number(a.name.match(/^\d+/)[0]);
-        const numeroB = Number(b.name.match(/^\d+/)[0]);
+    // Extrai a data AAAA-MM-DD do início do nome
+    function extrairData(nome) {
+      const resultado = nome.match(/^(\d{4}-\d{2}-\d{2})/);
+      return resultado ? resultado[1] : null;
+    }
 
-        return numeroB - numeroA;
+    // Filtra imagens com datas iguais ou posteriores a hoje
+    const imagens = arquivos
+      .filter(arquivo => {
+        if (arquivo.type !== "file") return false;
+
+        if (!/\.(jpg|jpeg|png|webp|gif|avif|bmp)$/i.test(arquivo.name))
+          return false;
+
+        const data = extrairData(arquivo.name);
+
+        return data !== null && data >= hoje;
+      })
+
+      // Ordem cronológica crescente
+      .sort((a, b) => {
+        return extrairData(a.name).localeCompare(extrairData(b.name));
       });
 
     galeria.innerHTML = "";
@@ -88,7 +108,7 @@ async function carregarImagens() {
     });
 
   } catch (erro) {
-    console.error("Falha ao carregar imagens:", erro);
+    console.error("Erro ao carregar imagens:", erro);
   }
 }
 
