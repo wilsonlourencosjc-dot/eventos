@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Galeria</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; width: 100%; background: #fff; }
+    #gallery { width: 100%; display: flex; flex-direction: column; gap: 0; }
+    #gallery img { display: block; width: 100%; height: auto; object-fit: contain; }
+  </style>
+</head>
+<body>
+  <main id="gallery" aria-label="Galeria de imagens"></main>
+  <script>
+    (() => {
+      const owner = 'wilsonlourencosjc-dot';
+      const repo = 'eventos';
+      const folder = ''; // Imagens na raiz do repositório. Ex.: 'imagens' se estiverem em uma pasta.
+      const api = `https://api.github.com/repos/${owner}/${repo}/contents/${folder}`;
+      const gallery = document.getElementById('gallery');
+
+      function numericName(name) {
+        const match = name.match(/^(\d+)(?:\.[^.]+)?$/);
+        return match ? Number(match[1]) : null;
+      }
+
+      async function loadImages() {
+        try {
+          const response = await fetch(`${api}?_=${Date.now()}`, {
+            headers: { 'Accept': 'application/vnd.github+json' },
+            cache: 'no-store'
+          });
+          if (!response.ok) throw new Error(`GitHub API: ${response.status}`);
+          const files = await response.json();
+          const images = files
+            .filter(file => file.type === 'file' && /\.(jpe?g|png|gif|webp|avif)$/i.test(file.name))
+            .map(file => ({ ...file, number: numericName(file.name) }))
+            .filter(file => file.number !== null)
+            .sort((a, b) => b.number - a.number || b.name.localeCompare(a.name, undefined, { numeric: true }));
+
+          gallery.replaceChildren();
+          for (const file of images) {
+            const img = document.createElement('img');
+            img.src = file.download_url;
+            img.alt = '';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            gallery.appendChild(img);
+          }
+        } catch (error) {
+          console.error('Não foi possível carregar as imagens do repositório:', error);
+        }
+      }
+
+      loadImages();
+    })();
+  </script>
+</body>
+</html>
